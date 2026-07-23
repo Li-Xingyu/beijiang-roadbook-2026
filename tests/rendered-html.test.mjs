@@ -62,3 +62,28 @@ test("keeps optional stops out of required progress and records both Duku reserv
   assert.match(staticEntry, /createRoot/);
   assert.match(staticConfig, /\/beijiang-roadbook-2026\//);
 });
+
+test("uses exact Ctrip hotel links and clearly labels cached reference prices", async () => {
+  const [page, cache, css] = await Promise.all([
+    readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/hotel-price-cache.ts", import.meta.url), "utf8"),
+    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
+  ]);
+
+  assert.match(page, /hotels\.ctrip\.com\/hotels\/\$\{hotel\.ctripHotelId\}\.html/);
+  assert.match(page, /checkIn: group\.checkIn/);
+  assert.match(page, /checkOut: group\.checkOut/);
+  assert.match(page, /adult: "2"/);
+  assert.match(page, /携程打开对应日期/);
+  assert.match(page, /暂无可靠缓存价/);
+  assert.match(page, /只看华住会/);
+  assert.match(page, /hotelPriceKey\(h\.ctripHotelId, group\.checkIn\)/);
+  assert.match(cache, /"19843324\|2026-07-30"[\s\S]*amount: 269/);
+  assert.match(cache, /"109698613\|2026-08-01"[\s\S]*amount: 417/);
+  assert.match(cache, /"135164854\|2026-08-05"[\s\S]*amount: 283/);
+  assert.match(cache, /"134017317\|2026-08-01"[\s\S]*amount: 501/);
+  assert.match(cache, /"134017317\|2026-08-02"[\s\S]*amount: 552/);
+  assert.match(css, /\.price-snapshot/);
+  assert.match(css, /\.huazhu-badge/);
+  assert.match(css, /\.stay-summary/);
+});

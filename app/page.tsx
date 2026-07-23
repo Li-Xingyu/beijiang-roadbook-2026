@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { hotelPriceCache, hotelPriceKey } from "./hotel-price-cache";
 
 type Stop = {
   id: string;
@@ -36,6 +37,18 @@ type Hotel = {
   level: "首选" | "省钱" | "舒适" | "景观" | "备选";
   price: string;
   why: string;
+  ctripHotelId?: string;
+  huazhu?: boolean;
+};
+
+type HotelGroup = {
+  id: string;
+  title: string;
+  date: string;
+  checkIn?: string;
+  checkOut?: string;
+  tip: string;
+  hotels: Hotel[];
 };
 
 const days: DayPlan[] = [
@@ -54,12 +67,12 @@ const days: DayPlan[] = [
     alert: "凌晨到达后的睡眠是硬约束。7月30日晚的机场酒店要提前声明“7月31日03:00后入住并保留房间”。",
     stops: [
       { id: "pickup", time: "02:00", name: "机场取车", place: "乌鲁木齐天山国际机场", kind: "drive", note: "拍车身四面、轮胎、油表和里程；确认异地还车、保险、备用钥匙及24小时救援。" },
-      { id: "sleep", time: "03:00–09:30", name: "补觉", place: "乌鲁木齐天山国际机场北京北路亚朵酒店", kind: "stay", note: "不要用咖啡替代睡眠。至少完整睡5–6小时，再开始当天驾驶。" },
+      { id: "sleep", time: "03:00–09:30", name: "补觉", place: "麗枫酒店 乌鲁木齐天山国际机场德港万达店", kind: "stay", note: "不要用咖啡替代睡眠。至少完整睡5–6小时，再开始当天驾驶。" },
       { id: "milk", time: "10:30", name: "正飞鲜奶", place: "正飞鲜奶 乌鲁木齐", kind: "food", note: "补给酸奶、奶制品；顺手在市区买水、防晒、雨衣和路餐。" },
       { id: "bazaar", time: "11:20–12:20", name: "国际大巴扎", place: "新疆国际大巴扎", kind: "view", note: "短停看建筑和街区即可；租车注意停车，贵重行李不要留在可见位置。", ticket: "街区免费，演出另付" },
       { id: "hetian", time: "12:30–14:30", name: "和田二街午餐", place: "和田二街", kind: "food", note: "优先：喀神一把抓烤包子、爱乐塔西无花果酸奶粽子、无花果抓饭、石榴籽馕房。两个人不要每家点满份。" },
       { id: "depart", time: "15:00", name: "出发去独山子", place: "独山子区", kind: "drive", note: "途中每2小时休息一次；如果犯困，立刻进服务区，不抢抵达时间。" },
-      { id: "dushanzi", time: "19:00前后", name: "独山子入住", place: "独山子丽呈明宇酒店 时代广场店", kind: "stay", note: "晚餐后加满油，下载高德离线地图；向酒店确认次日独库实时通行情况。" },
+      { id: "dushanzi", time: "19:00前后", name: "独山子入住", place: "独库大酒店 独库公路博物馆店", kind: "stay", note: "晚餐后加满油，下载高德离线地图；向酒店确认次日独库实时通行情况。" },
     ],
   },
   {
@@ -100,7 +113,7 @@ const days: DayPlan[] = [
       { id: "fairy", time: "07:30–10:45", name: "仙女湖（天气条件项）", place: "唐布拉仙女湖", kind: "view", note: "骑马往返通常占半天。先确认总价、往返时长和是否一人一马；头盔优先。", ticket: "现场骑马/接驳，优待证通常不抵扣" },
       { id: "nldrive", time: "11:00–14:30", name: "前往那拉提", place: "那拉提旅游风景区游客中心", kind: "drive", note: "返回乔尔玛后再次进入独库北段，使用8月2日乔尔玛入口12:00–14:00预约。途中简单路餐；若15:30仍未入园，不再硬挤当天项目。", ticket: "道路免费；跨日再次进入需第二次预约" },
       { id: "nalati", time: "14:30–18:30", name: "那拉提空中草原", place: "那拉提空中草原", kind: "view", note: "自驾只走空中草原核心环线：天界台—天牧台—游牧人家。不要为了“回本”再塞满河谷和盘龙谷。", ticket: "自驾票须提前预约；约¥200/人", veteran: "退役军人免首道门票约¥95，自驾服务费仍付；特殊证件按官方窗口流程办理。" },
-      { id: "nalatistay", time: "19:00", name: "那拉提入住", place: "新疆文旅那拉提度假酒店 游客中心店", kind: "stay", note: "第二天路程长，晚饭后加油、整理行李，07:30前出发。" },
+      { id: "nalatistay", time: "19:00", name: "那拉提入住", place: "新旅度假酒店 空中草原度假酒店", kind: "stay", note: "推荐园林小木屋，避免无窗房；第二天路程长，晚饭后加油、整理行李，07:30前出发。" },
     ],
   },
   {
@@ -120,7 +133,7 @@ const days: DayPlan[] = [
       { id: "transfer", time: "07:30–12:00", name: "那拉提到喀拉峻", place: "喀拉峻国际生态旅游区", kind: "drive", note: "途中只做短休息。不要临时把库尔德宁再塞进来，否则喀拉峻和夏塔都会被压缩。" },
       { id: "kalajun", time: "12:30–18:30", name: "东西喀拉峻", place: "喀拉峻大草原", kind: "view", note: "只做草原线，重点鲜花台、猎鹰台和立体草原；不叠加阔克苏大峡谷全套。", ticket: "建议提前1天买门票+区间车", veteran: "退役军人免门票约¥80，区间车约¥90照付。" },
       { id: "tekes", time: "19:20–21:00", name: "特克斯八卦城", place: "特克斯八卦城太极坛", kind: "view", note: "晚餐、太极坛和夜景轻逛；当天驾驶量大，不安排深夜活动。", ticket: "城区免费" },
-      { id: "tekesstay", time: "21:00", name: "特克斯入住", place: "全季酒店 特克斯八卦城太极坛店", kind: "stay", note: "连锁优先首选。前台询问次日去夏塔的道路与排队情况。" },
+      { id: "tekesstay", time: "21:00", name: "特克斯入住", place: "特克斯温州国际酒店 太极坛店", kind: "stay", note: "当前携程价比全季低很多。前台询问次日去夏塔的道路与排队情况。" },
     ],
   },
   {
@@ -141,7 +154,7 @@ const days: DayPlan[] = [
       { id: "xiata", time: "09:30–17:00", name: "夏塔景区", place: "夏塔旅游区", kind: "view", note: "区间车到温泉酒店后，根据体力徒步。常规16:00前返程；只有决定启用玉湖时才提前至15:00撤出。", ticket: "旺季限量，建议提前约3天", veteran: "免首道门票约¥40；区间车约¥60及后段交通/骑马另付。" },
       { id: "yuhu", time: "16:30–18:30（备选）", name: "昭苏玉湖", place: "昭苏玉湖景区", optional: true, kind: "view", note: "启用条件：15:00前结束夏塔、晴朗能见度好、两人体力充足且导航预计19:00前可入园。任何一项不满足都跳过，不影响主线进度。", ticket: "条件备选；出发前核对停止入园时间" },
       { id: "zhaosu", time: "17:00–19:30", name: "前往昭苏县城", place: "昭苏县", kind: "drive", note: "不去玉湖就从夏塔直接入住；启用玉湖则游览后前往县城，不再增加其他落日点。" },
-      { id: "zhaosustay", time: "19:30", name: "昭苏入住", place: "汉庭酒店 昭苏天马湖公园店", kind: "stay", note: "相比夏塔门口民宿，县城连锁卫生、洗衣和第二天伊昭出发更稳。想早入夏塔可反选景区门口民宿。" },
+      { id: "zhaosustay", time: "19:30", name: "昭苏入住", place: "陌上轻雅酒店 天马国际旅游文化广场店", kind: "stay", note: "当前价格比汉庭低。若华住App汉庭实付不超过500元，可改选汉庭换连锁稳定性。" },
     ],
   },
   {
@@ -189,73 +202,70 @@ const days: DayPlan[] = [
   },
 ];
 
-const hotelGroups: { id: string; title: string; date: string; tip: string; hotels: Hotel[] }[] = [
+const hotelGroups: HotelGroup[] = [
   {
-    id: "airport", title: "乌鲁木齐机场", date: "7月30日晚（31日凌晨入住）", tip: "必须提前电话保留凌晨房。机场接送不重要，因为你们先取车；免费停车和24小时前台更重要。",
+    id: "airport", title: "乌鲁木齐机场", date: "7月30日晚（31日凌晨入住）", checkIn: "2026-07-30", checkOut: "2026-07-31", tip: "推荐麗枫269元。必须备注7月31日凌晨入住并提前电话保留；你们先取车，所以免费停车和24小时前台比接送机更重要。",
     hotels: [
-      { name: "全季酒店（乌鲁木齐天山国际机场空港店）", area: "机场周边", level: "首选", price: "¥¥", why: "华住体系、标准稳定，适合只睡5–6小时。" },
-      { name: "乌鲁木齐国际机场北京北路亚朵酒店", area: "北京北路", level: "舒适", price: "¥¥¥", why: "床品与隔音更稳，凌晨落地后恢复体力优先。" },
-      { name: "乌鲁木齐天缘酒店", area: "南航站区", level: "备选", price: "¥¥", why: "传统机场酒店，选前先确认到T4取车点的实际车程。" },
+      { name: "麗枫酒店（乌鲁木齐天山国际机场德港万达店）", area: "机场 / 德港万达", level: "首选", price: "¥", why: "只睡约6小时的纯性价比首选；标准大床、免费停车。", ctripHotelId: "19843324" },
+      { name: "你好酒店（乌鲁木齐天山国际机场店）", area: "迎宾路口地铁站", level: "省钱", price: "¥", why: "华住性价比首选；华住App实付不高于270元时可替代麗枫。", ctripHotelId: "1982097", huazhu: true },
+      { name: "桔子酒店（乌鲁木齐天山国际机场德港万达店）", area: "机场 / 德港万达", level: "舒适", price: "¥¥", why: "房间、床品和投屏更好，但凌晨短住不必强行升级。", ctripHotelId: "60904572", huazhu: true },
+      { name: "汉庭酒店（乌鲁木齐天山国际机场店）", area: "机场 / 三工", level: "备选", price: "¥¥", why: "新店、免费接机、停车方便；携程价高于你好和麗枫。", ctripHotelId: "131314292", huazhu: true },
+      { name: "乌鲁木齐机场德港万达亚朵酒店", area: "德港万达", level: "舒适", price: "¥¥¥", why: "床品与隔音更稳，适合非常看重第一晚恢复；当前价不够划算。", ctripHotelId: "106549736" },
     ],
   },
   {
-    id: "dushanzi", title: "独山子", date: "7月31日晚", tip: "选择市区、有正规停车场和早餐早开的酒店；不要为了住景区边缘增加第二天取补给的时间。",
+    id: "dushanzi", title: "独山子", date: "7月31日晚", checkIn: "2026-07-31", checkOut: "2026-08-01", tip: "推荐独库大酒店262元含双早，位置就在零起点区域。奎屯桔子水晶只是华住备选，第二天还要多开约30分钟。",
     hotels: [
-      { name: "独山子丽呈明宇酒店（时代广场店）", area: "市中心", level: "首选", price: "¥¥", why: "此前查价约¥271，位置和综合品质比较均衡。" },
-      { name: "克拉玛依独山子慧洋万达锦华酒店", area: "独库东一路", level: "舒适", price: "¥¥¥", why: "新、停车方便，预算允许时省心。" },
-      { name: "独山子大酒店", area: "市区", level: "省钱", price: "¥", why: "传统酒店，价格合适时作为功能型过夜。" },
+      { name: "独库大酒店（独库公路博物馆店）", area: "独库大本营 / 零起点", level: "首选", price: "¥", why: "豪华双床含双早，停车和次日进独库都方便；当前价格断层领先。", ctripHotelId: "80646424" },
+      { name: "独山子慧洋万达锦华酒店（独库公路零起点店）", area: "独库零起点", level: "舒适", price: "¥¥", why: "品牌和设施更稳；比首选贵94元，适合用差价买省心。", ctripHotelId: "123088784" },
+      { name: "独山子冰峰温泉假日酒店（独库公路店）", area: "独库公路沿线", level: "景观", price: "¥¥", why: "含双早、带温泉与观景露台；适合想把过夜升级成体验。", ctripHotelId: "120263594" },
+      { name: "奎屯友好购物中心桔子水晶酒店", area: "奎屯市区", level: "备选", price: "¥¥¥", why: "最近的华住备选；需要把约30分钟车程放到次日清晨，且当前价过高。", ctripHotelId: "134385397", huazhu: true },
     ],
   },
   {
-    id: "tangbula", title: "唐布拉百里画廊", date: "8月1日晚", tip: "这里没有真正可比的全国连锁。优先独立卫浴、供暖、停车和真实近30天评价，不为帐篷景观支付过高溢价。",
+    id: "tangbula", title: "唐布拉百里画廊", date: "8月1日晚", checkIn: "2026-08-01", checkOut: "2026-08-02", tip: "推荐欢驿417元。唐布拉当地没有华住门店；新源汉庭只是跨区域备选，当晚继续开车会影响仙女湖晨间安排，不建议为了品牌搬走。",
     hotels: [
-      { name: "百里画廊唐布拉草原欢驿栖息馆", area: "种蜂场", level: "首选", price: "¥¥", why: "位置实用、24小时前台；方便联系仙女湖马队。" },
-      { name: "画廊别苑民宿（孟克特景区店）", area: "唐布拉草原", level: "舒适", price: "¥¥", why: "近期评价提到可协助确认景区开放和骑马。" },
-      { name: "尼勒克古道山前民宿（唐布拉孟克特景区店）", area: "乔尔玛镇", level: "省钱", price: "¥", why: "自驾落脚实用，适合把住宿当睡觉点。" },
-      { name: "唐布拉百里画廊松果野奢营地", area: "百里画廊", level: "景观", price: "¥¥¥", why: "景观体验好，但雷雨、隔音和价格波动需要接受。" },
+      { name: "百里画廊唐布拉草原欢驿栖息馆", area: "种蜂场 / 百里画廊起点", level: "首选", price: "¥¥", why: "位置实用、价格断层领先；方便当晚确认仙女湖马队和天气。", ctripHotelId: "109698613" },
+      { name: "汉庭酒店（新源天鹅湖店）", area: "新源县城（跨区域）", level: "备选", price: "¥¥", why: "最近的顺路华住备选；需要继续夜驾，只有取消仙女湖晨间安排时才考虑。", ctripHotelId: "134017317", huazhu: true },
+      { name: "唐布拉百里画廊松果野奢营地", area: "百里画廊", level: "景观", price: "¥¥", why: "含双早、景观更好；帐篷隔音、雷雨和停车信息需再次确认。", ctripHotelId: "112388333" },
+      { name: "独库唐布拉野奢度假酒店", area: "百里画廊核心区", level: "景观", price: "¥¥¥", why: "房车和草原体验更完整，但比首选贵502元，不符合性价比主线。", ctripHotelId: "117379512" },
+      { name: "舒泊瑞斯酒店（唐布拉孟克特景区店）", area: "孟克特入口", level: "舒适", price: "¥¥¥", why: "配套齐全、含双早；近期评价分化且暑期溢价明显。", ctripHotelId: "121054293" },
     ],
   },
   {
-    id: "nalati", title: "那拉提", date: "8月2日晚", tip: "你们只住一晚且第二天早走，景区游客中心附近比“住得漂亮”更重要。",
+    id: "nalati", title: "那拉提 / 新源", date: "8月2日晚", checkIn: "2026-08-02", checkOut: "2026-08-03", tip: "推荐新旅园林小木屋554元，比无窗房只贵66元。纯省钱可选新疆文旅488元；新源汉庭把次日约1小时路程前置到晚上。",
     hotels: [
-      { name: "新疆文旅那拉提度假酒店（游客中心店）", area: "游客中心旁", level: "首选", price: "¥¥", why: "此前查价约¥488，位置优势明显、正规度高。" },
-      { name: "新疆华美胜地那拉提智选假日酒店", area: "那拉提东街", level: "舒适", price: "¥¥¥", why: "IHG连锁，硬件新；暑期价格高时性价比会下降。" },
-      { name: "那拉提金陵山庄", area: "景区方向", level: "景观", price: "¥¥¥", why: "预算充足、想看晨昏景观时选；只过夜不划算。" },
+      { name: "新疆文旅那拉提度假酒店（游客中心店）", area: "游客中心旁", level: "省钱", price: "¥¥", why: "含双早、位置最好；低价房是无窗双床，接受再订。", ctripHotelId: "49847912" },
+      { name: "汉庭酒店（新源天鹅湖店）", area: "新源县城", level: "备选", price: "¥¥", why: "华住、房间有窗、停车稳定；华住App实付不高于480元时更有吸引力。", ctripHotelId: "134017317", huazhu: true },
+      { name: "新旅度假酒店（空中草原度假酒店）", area: "那拉提景区", level: "首选", price: "¥¥", why: "园林小木屋含双早，用66元解决无窗问题，综合体验最均衡。", ctripHotelId: "96373630" },
+      { name: "新源那拉提国际酒店（县人民政府店）", area: "新源县城", level: "舒适", price: "¥¥¥", why: "智能房、双早、设施齐全；对单晚过渡来说价格偏高。", ctripHotelId: "119081199" },
     ],
   },
   {
-    id: "tekes", title: "特克斯八卦城", date: "8月3日晚", tip: "这里连锁选择最好。优先华住，哪家含双早且可取消就选哪家，不必执着太极坛最近。",
+    id: "tekes", title: "特克斯八卦城", date: "8月3日晚", checkIn: "2026-08-03", checkOut: "2026-08-04", tip: "推荐温州国际399元；若担心老酒店设施，加32元选H+。全季是本地华住备选，但即使按85折估算仍明显溢价。",
     hotels: [
-      { name: "全季酒店（特克斯八卦城太极坛店）", area: "太极坛附近", level: "首选", price: "¥¥", why: "新、位置好、品牌稳定，当前最符合你的偏好。" },
-      { name: "全季酒店（特克斯九宫新城店）", area: "九宫新城", level: "备选", price: "¥¥", why: "同品牌比价备选，停车和房型更重要。" },
-      { name: "特克斯H+酒店（八卦城中心太极坛店）", area: "中心区域", level: "省钱", price: "¥", why: "停车和步行便利，价格明显低于全季时更划算。" },
-      { name: "特克斯亨通国际酒店", area: "八卦城", level: "舒适", price: "¥¥¥", why: "想升级房间和服务时考虑，不作为默认。" },
+      { name: "特克斯温州国际酒店（八卦城中心太极坛店）", area: "太极坛附近", level: "首选", price: "¥¥", why: "32㎡、有窗、中心位置；当前价格和评价组合最好。", ctripHotelId: "80179236" },
+      { name: "特克斯H+酒店（八卦城中心太极坛店）", area: "中心区域", level: "舒适", price: "¥¥", why: "比首选只贵32元，设施更新，适合担心老酒店硬件时切换。", ctripHotelId: "118873133" },
+      { name: "特克斯瞻德酒店（八卦城店）", area: "八卦城中心", level: "备选", price: "¥¥", why: "零压床垫、免费停车；综合性价比不如前两家。", ctripHotelId: "110127741" },
+      { name: "全季酒店（特克斯八卦城太极坛店）", area: "太极坛附近", level: "舒适", price: "¥¥¥", why: "本地华住品质首选，但当前价874元，85折后仍不建议。", ctripHotelId: "124224560", huazhu: true },
     ],
   },
   {
-    id: "zhaosu", title: "昭苏 / 夏塔", date: "8月4日晚", tip: "主方案住昭苏县城，换取连锁卫生与洗衣；若想早入夏塔，则改住景区门口民宿，两种方案不要混搭。",
+    id: "zhaosu", title: "昭苏", date: "8月4日晚", checkIn: "2026-08-04", checkOut: "2026-08-05", tip: "推荐陌上轻雅478元。华住App里昭苏汉庭实付不高于500元时，可用约20元差价换连锁稳定性；否则继续住陌上。",
     hotels: [
-      { name: "汉庭酒店（昭苏天马湖公园店）", area: "昭苏县城", level: "首选", price: "¥¥", why: "2026年新开、停车方便，路线与品牌最均衡。" },
-      { name: "全季酒店（昭苏天马国际广场店）", area: "昭苏县城", level: "舒适", price: "¥¥¥", why: "华住优先，暑期价格过高时改汉庭。" },
-      { name: "夕夏里民宿（夏塔景区店）", area: "夏塔门口", level: "景观", price: "¥¥", why: "近景区、有接送评价；适合把夏塔调整到第二天早上。" },
-      { name: "漫唐居民宿（夏塔景区店）", area: "夏塔门口", level: "备选", price: "¥¥", why: "近景区、露台，作为民宿比价对象。" },
+      { name: "陌上轻雅酒店（昭苏天马国际旅游文化广场店）", area: "天马国际旅游文化广场", level: "首选", price: "¥¥", why: "新店、免费停车、当前现金价最低，路线位置合适。", ctripHotelId: "134823430" },
+      { name: "昭苏盛疆业大酒店（天马国际旅游文化广场店）", area: "天马国际旅游文化广场", level: "舒适", price: "¥¥", why: "4.7分、房间较大，离美食街近；比首选贵84元。", ctripHotelId: "129136283" },
+      { name: "汉庭酒店（昭苏天马湖公园店）", area: "天马湖公园", level: "备选", price: "¥¥", why: "2026年新开、华住、停车方便；官方实付不高于500元再选。", ctripHotelId: "134658761", huazhu: true },
+      { name: "奥斯顿国际酒店（昭苏人民政府天马湖公园店）", area: "天马湖公园", level: "舒适", price: "¥¥¥", why: "智能客控和停车条件好，但当前828元不符合性价比主线。", ctripHotelId: "129687411" },
     ],
   },
   {
-    id: "sairam", title: "清水河 / 赛里木湖", date: "8月5日晚", tip: "性价比首选清水河，住宿便宜且补给完整；城际酒店只有价格回落或明确含餐/入园权益时才升级。",
+    id: "sairam", title: "清水河 / 赛里木湖", date: "8月5日晚", checkIn: "2026-08-05", checkOut: "2026-08-06", tip: "推荐汉庭283元。第二天要早回赛里木湖，酒店早餐大概率吃不上；若决定8点后再出发，可加35元选丽呈双早。",
     hotels: [
-      { name: "汉庭酒店（霍城清水河店）", area: "清水河镇", level: "首选", price: "¥¥", why: "2026年新开；此前查价约¥283起，华住且停车方便。" },
-      { name: "霍城初喜酒店（清水河店）", area: "清水河镇", level: "舒适", price: "¥¥", why: "近期评价稳定，汉庭涨价时重点比价。" },
-      { name: "霍城京基大酒店（清水河店）", area: "清水河镇", level: "省钱", price: "¥", why: "功能型住宿，安静与卫生评价相对稳。" },
-      { name: "赛里木湖城际酒店", area: "赛湖景区", level: "景观", price: "¥¥¥", why: "只在含三餐、位置权益明确且总价能接受时选。" },
-    ],
-  },
-  {
-    id: "yining", title: "伊宁应急住宿", date: "误机 / 行程调整备用", tip: "正常行程无需住伊宁；如果天气导致改线或航班变化，优先住机场与六星街之间。",
-    hotels: [
-      { name: "全季酒店（伊宁国际机场六星街景区店）", area: "机场 / 六星街", level: "首选", price: "¥¥", why: "机场和六星街兼顾，华住体系。" },
-      { name: "桔子酒店（伊宁六星街景区店）", area: "解放西路", level: "舒适", price: "¥¥", why: "有停车场，步行可达六星街周边。" },
-      { name: "伊宁市上海城解放西路亚朵酒店", area: "解放西路", level: "舒适", price: "¥¥¥", why: "床品和路早服务适合航班调整。" },
+      { name: "汉庭酒店（霍城清水河店）", area: "清水河镇", level: "首选", price: "¥", why: "2026年新开、华住、免费停车；早走赛湖时无需为早餐付费。", ctripHotelId: "135164854", huazhu: true },
+      { name: "丽呈花盛酒店（霍城清水河店）", area: "清水河镇", level: "省钱", price: "¥", why: "边角双床含双早；不赶赛湖清晨时，比汉庭更完整。", ctripHotelId: "127628467" },
+      { name: "霍城云朵酒店（清水河店）", area: "清水河镇", level: "舒适", price: "¥¥", why: "房间较大、洗衣方便；存在烟味和隔音评价分化。", ctripHotelId: "120273351" },
+      { name: "霍城初喜酒店（清水河店）", area: "清水河镇", level: "舒适", price: "¥¥", why: "梦百合床品、空间较大；当前价比汉庭高275元，不推荐默认选。", ctripHotelId: "120215979" },
     ],
   },
 ];
@@ -285,7 +295,29 @@ const ticketCards = [
 
 const amap = (name: string) => `https://uri.amap.com/search?keyword=${encodeURIComponent(name)}&city=${encodeURIComponent("新疆")}&view=map&src=xinjiang-trip&callnative=1`;
 const apple = (name: string) => `https://maps.apple.com/?daddr=${encodeURIComponent(name + ", 新疆")}&dirflg=d`;
-const ctrip = (name: string) => `https://m.ctrip.com/webapp/hotel/?keyword=${encodeURIComponent(name)}`;
+const ctrip = (hotel: Hotel, group: HotelGroup) => {
+  if (hotel.ctripHotelId && group.checkIn && group.checkOut) {
+    const params = new URLSearchParams({
+      checkIn: group.checkIn,
+      checkOut: group.checkOut,
+      crn: "1",
+      adult: "2",
+      children: "0",
+    });
+    return `https://hotels.ctrip.com/hotels/${hotel.ctripHotelId}.html?${params.toString()}`;
+  }
+  return `https://m.ctrip.com/webapp/hotel/?keyword=${encodeURIComponent(hotel.name)}`;
+};
+
+const checkedAtText = (value: string) =>
+  new Intl.DateTimeFormat("zh-CN", {
+    timeZone: "Asia/Shanghai",
+    month: "numeric",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(new Date(value));
 
 function weatherText(code: number) {
   if (code === 0) return "晴";
@@ -335,6 +367,14 @@ export default function Home() {
     const key = `${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}`;
     return days.find((d) => d.id === key) || days.find((d) => d.stops.some((s) => !s.optional && !done[s.id])) || days[days.length - 1];
   }, [done]);
+
+  const visibleHotelGroups = useMemo(() => hotelGroups
+    .filter((group) => hotelFilter === "all" || hotelFilter === "huazhu" || hotelFilter === group.id)
+    .map((group) => ({
+      ...group,
+      hotels: hotelFilter === "huazhu" ? group.hotels.filter((hotel) => hotel.huazhu) : group.hotels,
+    }))
+    .filter((group) => group.hotels.length > 0), [hotelFilter]);
 
   async function refreshWeather() {
     setWeatherStatus("正在更新…");
@@ -464,11 +504,26 @@ export default function Home() {
 
       {tab === "stays" && (
         <div className="view-stack">
-          <section className="page-intro"><p className="eyebrow">STAYS</p><h2>沿途住宿备选</h2><p>连锁优先，唐布拉和夏塔门口才接受民宿。¥为相对档位，不是实时房价；最终比较含早、取消政策和停车。</p></section>
-          <div className="filter-scroll"><button className={hotelFilter === "all" ? "active" : ""} onClick={() => setHotelFilter("all")}>全部</button>{hotelGroups.map(g => <button key={g.id} className={hotelFilter === g.id ? "active" : ""} onClick={() => setHotelFilter(g.id)}>{g.title}</button>)}</div>
-          {hotelGroups.filter(g => hotelFilter === "all" || hotelFilter === g.id).map(group => <section className="hotel-group" key={group.id}>
+          <section className="page-intro"><p className="eyebrow">STAYS</p><h2>沿途住宿备选</h2><p>每晚3–5家，至少包含一个华住或顺路最近的华住备选。携程价格是7月23日白银贵宾价人工快照，不是实时库存；下单前再次核对房型、早餐、取消政策和停车。</p></section>
+          <section className="stay-summary">
+            <div><span>推荐组合</span><strong>¥2,662</strong><small>7晚 · 平均¥380/晚</small></div>
+            <p>麗枫 → 独库大酒店 → 唐布拉欢驿 → 新旅小木屋 → 温州国际 → 陌上轻雅 → 清水河汉庭</p>
+            <p className="stay-summary-note">那拉提接受无窗房可降至¥2,596。华住85折只作切换条件，最终以华住App支付页为准。</p>
+          </section>
+          <div className="filter-scroll"><button className={hotelFilter === "all" ? "active" : ""} onClick={() => setHotelFilter("all")}>全部</button><button className={hotelFilter === "huazhu" ? "active" : ""} onClick={() => setHotelFilter("huazhu")}>只看华住会</button>{hotelGroups.map(g => <button key={g.id} className={hotelFilter === g.id ? "active" : ""} onClick={() => setHotelFilter(g.id)}>{g.title}</button>)}</div>
+          {visibleHotelGroups.map(group => <section className="hotel-group" key={group.id}>
             <div className="hotel-group-head"><div><span>{group.date}</span><h2>{group.title}</h2></div><p>{group.tip}</p></div>
-            <div className="hotel-list">{group.hotels.map(h => <article className="hotel-card" key={h.name}><div className="hotel-top"><span className={`level ${h.level}`}>{h.level}</span><span className="price-level">{h.price}</span></div><h3>{h.name}</h3><p className="hotel-area">📍 {h.area}</p><p>{h.why}</p><div className="quick-actions"><a href={amap(h.name)} target="_blank" rel="noreferrer">高德</a><a href={apple(h.name)} target="_blank" rel="noreferrer">Apple地图</a><a href={ctrip(h.name)} target="_blank" rel="noreferrer">携程比价</a></div></article>)}</div>
+            <div className="hotel-list">{group.hotels.map(h => {
+              const cachedPrice = h.ctripHotelId && group.checkIn ? hotelPriceCache[hotelPriceKey(h.ctripHotelId, group.checkIn)] : undefined;
+              return <article className="hotel-card" key={h.name}>
+                <div className="hotel-top"><span className={`level ${h.level}`}>{h.level}</span><span className="price-level">{cachedPrice ? `¥${cachedPrice.amount}起` : h.price}</span></div>
+                <div className="hotel-name-row"><h3>{h.name}</h3>{h.huazhu && <span className="huazhu-badge">华住会</span>}</div><p className="hotel-area">📍 {h.area}</p><p>{h.why}</p>
+                {cachedPrice
+                  ? <div className="price-snapshot"><div><strong>携程参考价 ¥{cachedPrice.amount}</strong><span>{cachedPrice.rateNote}</span></div><small>{checkedAtText(cachedPrice.checkedAt)}核验 · {cachedPrice.occupancy} · 以打开后的实时价为准</small></div>
+                  : <div className="price-snapshot is-empty"><strong>暂无可靠缓存价</strong><small>点击携程搜索，核对同名酒店和入住日期</small></div>}
+                <div className="quick-actions"><a href={amap(h.name)} target="_blank" rel="noreferrer">高德</a><a href={apple(h.name)} target="_blank" rel="noreferrer">Apple地图</a><a href={ctrip(h, group)} target="_blank" rel="noreferrer">{h.ctripHotelId ? "携程打开对应日期" : "携程搜索酒店"}</a></div>
+              </article>;
+            })}</div>
           </section>)}
         </div>
       )}
