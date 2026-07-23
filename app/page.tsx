@@ -7,6 +7,7 @@ type Stop = {
   time: string;
   name: string;
   place?: string;
+  optional?: boolean;
   kind: "drive" | "view" | "food" | "stay" | "flight" | "check";
   note: string;
   ticket?: string;
@@ -76,7 +77,7 @@ const days: DayPlan[] = [
     alert: "独库开放不代表全天畅通。07:00查交警公告；遇管制就执行页面底部的“独库关闭备选线”。",
     stops: [
       { id: "roadcheck", time: "07:00", name: "查路况 + 加满油", place: "独库公路独山子起点", kind: "check", note: "检查胎压、玻璃水、油量和刹车；油量低于半箱就补。不要盲信导航的预计时间。" },
-      { id: "duku", time: "08:00–14:30", name: "独库公路北段", place: "独库公路起点纪念碑", kind: "drive", note: "重点是沿途雪山峡谷和公路本身。停车只进正规停车区，弯道与隧道口不停车。", ticket: "免费，无需预约" },
+      { id: "duku", time: "08:00–14:30", name: "独库公路北段", place: "独库公路起点纪念碑", kind: "drive", note: "重点是沿途雪山峡谷和公路本身。停车只进正规停车区，弯道与隧道口不停车。使用8月1日乌苏驿入口08:00–10:00预约。", ticket: "道路免费；2026年北段必须预约" },
       { id: "qiaoerma", time: "12:30左右", name: "乔尔玛休整", place: "乔尔玛革命烈士陵园", kind: "view", note: "补给、午餐、洗手间；控制在45分钟左右，下午给唐布拉留时间。" },
       { id: "gallery", time: "15:00–19:00", name: "唐布拉百里画廊", place: "唐布拉百里画廊", kind: "view", note: "沿喀什河随走随停，以车览和短步行为主。雨后注意路肩松软，不下非铺装支路。", ticket: "主线免费" },
       { id: "tangstay", time: "19:30", name: "唐布拉入住", place: "百里画廊唐布拉草原欢驿栖息馆", kind: "stay", note: "请民宿当晚确认仙女湖马队价格、出发点和天气；不向陌生个人账户支付高额定金。" },
@@ -97,7 +98,7 @@ const days: DayPlan[] = [
     alert: "硬截止：15:00前到那拉提游客中心。下雨、低云或仙女湖结束晚于11:00，直接跳过仙女湖。",
     stops: [
       { id: "fairy", time: "07:30–10:45", name: "仙女湖（天气条件项）", place: "唐布拉仙女湖", kind: "view", note: "骑马往返通常占半天。先确认总价、往返时长和是否一人一马；头盔优先。", ticket: "现场骑马/接驳，优待证通常不抵扣" },
-      { id: "nldrive", time: "11:00–14:30", name: "前往那拉提", place: "那拉提旅游风景区游客中心", kind: "drive", note: "途中简单路餐，不安排正式午餐。若15:30仍未入园，不再硬挤当天项目。" },
+      { id: "nldrive", time: "11:00–14:30", name: "前往那拉提", place: "那拉提旅游风景区游客中心", kind: "drive", note: "返回乔尔玛后再次进入独库北段，使用8月2日乔尔玛入口12:00–14:00预约。途中简单路餐；若15:30仍未入园，不再硬挤当天项目。", ticket: "道路免费；跨日再次进入需第二次预约" },
       { id: "nalati", time: "14:30–18:30", name: "那拉提空中草原", place: "那拉提空中草原", kind: "view", note: "自驾只走空中草原核心环线：天界台—天牧台—游牧人家。不要为了“回本”再塞满河谷和盘龙谷。", ticket: "自驾票须提前预约；约¥200/人", veteran: "退役军人免首道门票约¥95，自驾服务费仍付；特殊证件按官方窗口流程办理。" },
       { id: "nalatistay", time: "19:00", name: "那拉提入住", place: "新疆文旅那拉提度假酒店 游客中心店", kind: "stay", note: "第二天路程长，晚饭后加油、整理行李，07:30前出发。" },
     ],
@@ -134,11 +135,12 @@ const days: DayPlan[] = [
     lat: 42.48,
     lon: 80.76,
     tone: "ice",
-    alert: "夏塔是全程最怕天气与客流的项目。提前购票、尽量早到；出现暴雨、山洪或景区关闭，不进沟冒险。",
+    alert: "夏塔是当天主线。玉湖仅在15:00前结束夏塔、天气晴朗且两人体力充足时启用；不满足任一条件就直接去昭苏。",
     stops: [
-      { id: "xiataway", time: "07:00–09:30", name: "前往夏塔", place: "夏塔旅游区游客中心", kind: "drive", note: "早餐打包，争取成为上午第一批。玉湖不放主线，避免把夏塔压缩成打卡。" },
-      { id: "xiata", time: "09:30–17:00", name: "夏塔景区", place: "夏塔旅游区", kind: "view", note: "区间车到温泉酒店后，根据体力徒步。16:00前开始返程，不追赶冰川近距离。", ticket: "旺季限量，建议提前约3天", veteran: "免首道门票约¥40；区间车约¥60及后段交通/骑马另付。" },
-      { id: "zhaosu", time: "17:00–19:00", name: "前往昭苏县城", place: "昭苏县", kind: "drive", note: "若天气好且体力充足，可在县城周边看落日；不再折返玉湖。" },
+      { id: "xiataway", time: "07:00–09:30", name: "前往夏塔", place: "夏塔旅游区游客中心", kind: "drive", note: "早餐打包，争取成为上午第一批。玉湖只做条件备选，不为它牺牲夏塔的天气窗口。" },
+      { id: "xiata", time: "09:30–17:00", name: "夏塔景区", place: "夏塔旅游区", kind: "view", note: "区间车到温泉酒店后，根据体力徒步。常规16:00前返程；只有决定启用玉湖时才提前至15:00撤出。", ticket: "旺季限量，建议提前约3天", veteran: "免首道门票约¥40；区间车约¥60及后段交通/骑马另付。" },
+      { id: "yuhu", time: "16:30–18:30（备选）", name: "昭苏玉湖", place: "昭苏玉湖景区", optional: true, kind: "view", note: "启用条件：15:00前结束夏塔、晴朗能见度好、两人体力充足且导航预计19:00前可入园。任何一项不满足都跳过，不影响主线进度。", ticket: "条件备选；出发前核对停止入园时间" },
+      { id: "zhaosu", time: "17:00–19:30", name: "前往昭苏县城", place: "昭苏县", kind: "drive", note: "不去玉湖就从夏塔直接入住；启用玉湖则游览后前往县城，不再增加其他落日点。" },
       { id: "zhaosustay", time: "19:30", name: "昭苏入住", place: "汉庭酒店 昭苏天马湖公园店", kind: "stay", note: "相比夏塔门口民宿，县城连锁卫生、洗衣和第二天伊昭出发更稳。想早入夏塔可反选景区门口民宿。" },
     ],
   },
@@ -259,6 +261,8 @@ const hotelGroups: { id: string; title: string; date: string; tip: string; hotel
 ];
 
 const prepItems = [
+  "独库预约①：8月1日乌苏驿入口，建议08:00–10:00",
+  "独库预约②：8月2日乔尔玛入口，建议12:00–14:00",
   "那拉提自驾票（智游那拉提，开放未来7日库存时抢）",
   "夏塔门票 + 区间车（智游昭苏，建议提前3天）",
   "赛里木湖自驾名额（官方渠道提前3–5天关注）",
@@ -272,6 +276,7 @@ const prepItems = [
 ];
 
 const ticketCards = [
+  { name: "独库北段预约 ×2", when: "8月1日、2日", urgency: "提前1–7天", cost: "道路免费，但两次跨日进入均须预约", veteran: "退役军人驾驶普通社会车辆仍按预约规则通行", channel: "游新疆一码游 / 新疆交警 / 新疆路网", phone: "12123" },
   { name: "那拉提自驾", when: "8月2日", urgency: "最优先", cost: "常规¥200/人", veteran: "你免首道门票约¥95，仍付自驾服务费", channel: "智游那拉提", phone: "09995291888" },
   { name: "喀拉峻草原", when: "8月3日", urgency: "提前1天", cost: "门票约¥80 + 区间车约¥90", veteran: "门票免，区间车原价", channel: "喀拉峻官方票务", phone: "09997765111" },
   { name: "夏塔", when: "8月4日", urgency: "提前约3天", cost: "门票约¥40 + 区间车约¥60", veteran: "门票免，区间车/骑马另付", channel: "智游昭苏", phone: "09996267165" },
@@ -321,14 +326,14 @@ export default function Home() {
     localStorage.setItem("xinjiang-trip-v1", JSON.stringify({ done, prep, notes }));
   }, [done, prep, notes, mounted]);
 
-  const allStops = useMemo(() => days.flatMap((day) => day.stops), []);
+  const allStops = useMemo(() => days.flatMap((day) => day.stops.filter((stop) => !stop.optional)), []);
   const doneCount = allStops.filter((stop) => done[stop.id]).length;
   const progress = Math.round((doneCount / allStops.length) * 100);
 
   const activeDay = useMemo(() => {
     const now = new Date();
     const key = `${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}`;
-    return days.find((d) => d.id === key) || days.find((d) => d.stops.some((s) => !done[s.id])) || days[days.length - 1];
+    return days.find((d) => d.id === key) || days.find((d) => d.stops.some((s) => !s.optional && !done[s.id])) || days[days.length - 1];
   }, [done]);
 
   async function refreshWeather() {
@@ -390,17 +395,17 @@ export default function Home() {
             <p className="route-copy">{activeDay.route}</p>
             <div className="metric-row"><span>🚙 {activeDay.drive}</span><span>⌁ {activeDay.distance}</span><span>📍 {activeDay.weatherPlace}</span></div>
             {activeDay.alert && <div className="alert-box"><b>今天的硬约束</b><span>{activeDay.alert}</span></div>}
-            <a className="primary-nav" href={amap(activeDay.stops.find(s => !done[s.id])?.place || activeDay.stops[0].place || activeDay.title)} target="_blank" rel="noreferrer">在高德打开下一站 <span>↗</span></a>
+            <a className="primary-nav" href={amap(activeDay.stops.find(s => !s.optional && !done[s.id])?.place || activeDay.stops[0].place || activeDay.title)} target="_blank" rel="noreferrer">在高德打开下一站 <span>↗</span></a>
           </section>
 
           <section className="section-block">
             <div className="section-title"><div><p className="eyebrow">NOW</p><h2>下一步做什么</h2></div><button className="text-button" onClick={() => setTab("route")}>完整日程</button></div>
             <div className="next-list">
               {activeDay.stops.map((stop) => (
-                <article className={`next-item ${done[stop.id] ? "is-done" : ""}`} key={stop.id}>
+                <article className={`next-item ${stop.optional ? "is-optional" : ""} ${done[stop.id] ? "is-done" : ""}`} key={stop.id}>
                   <button className="check-button" onClick={() => setDone(v => ({ ...v, [stop.id]: !v[stop.id] }))} aria-label={`${done[stop.id] ? "取消完成" : "标记完成"} ${stop.name}`}>{done[stop.id] ? "✓" : ""}</button>
                   <div className="next-time">{stop.time}</div>
-                  <div className="next-main"><h3>{stop.name}</h3><p>{stop.note}</p>
+                  <div className="next-main"><h3>{stop.name}{stop.optional && <span className="optional-badge">备选</span>}</h3><p>{stop.note}</p>
                     <div className="quick-actions">
                       {stop.place && <a href={amap(stop.place)} target="_blank" rel="noreferrer">高德</a>}
                       {stop.place && <a href={apple(stop.place)} target="_blank" rel="noreferrer">Apple地图</a>}
@@ -426,16 +431,17 @@ export default function Home() {
         <div className="view-stack">
           <section className="page-intro"><p className="eyebrow">ITINERARY</p><h2>7天完整行程</h2><p>路线按“乌鲁木齐进、伊宁出”重排。勾选会自动保存在本机；每个地点都有双地图入口。</p></section>
           {days.map(day => {
-            const dayDone = day.stops.filter(s => done[s.id]).length;
+            const requiredStops = day.stops.filter(s => !s.optional);
+            const dayDone = requiredStops.filter(s => done[s.id]).length;
             return <section className={`day-card ${day.tone}`} key={day.id}>
-              <div className="day-head"><div className="day-date"><strong>{day.date}</strong><span>{day.dow}</span></div><div className="day-name"><h2>{day.title}</h2><p>{day.route}</p></div><div className="day-count">{dayDone}/{day.stops.length}</div></div>
+              <div className="day-head"><div className="day-date"><strong>{day.date}</strong><span>{day.dow}</span></div><div className="day-name"><h2>{day.title}</h2><p>{day.route}</p></div><div className="day-count">{dayDone}/{requiredStops.length}</div></div>
               <div className="day-meta"><span>🚙 {day.drive}</span><span>⌁ {day.distance}</span>{weather[day.id] && <span>☁ {weatherText(weather[day.id].code)} {weather[day.id].min}–{weather[day.id].max}℃</span>}</div>
               {day.alert && <p className="day-alert">⚠ {day.alert}</p>}
               <div className="timeline">
-                {day.stops.map(stop => <article className={`timeline-row ${done[stop.id] ? "is-done" : ""}`} key={stop.id}>
+                {day.stops.map(stop => <article className={`timeline-row ${stop.optional ? "is-optional" : ""} ${done[stop.id] ? "is-done" : ""}`} key={stop.id}>
                   <button className="check-button" onClick={() => setDone(v => ({ ...v, [stop.id]: !v[stop.id] }))}>{done[stop.id] ? "✓" : ""}</button>
                   <time>{stop.time}</time>
-                  <div><h3>{stop.name}</h3><p>{stop.note}</p>{stop.ticket && <div className="info-chip">票务 · {stop.ticket}</div>}{stop.veteran && <div className="veteran-chip">优待证 · {stop.veteran}</div>}<div className="quick-actions">{stop.place && <a href={amap(stop.place)} target="_blank" rel="noreferrer">高德导航</a>}{stop.place && <a href={apple(stop.place)} target="_blank" rel="noreferrer">Apple地图</a>}</div></div>
+                  <div><h3>{stop.name}{stop.optional && <span className="optional-badge">备选，不计进度</span>}</h3><p>{stop.note}</p>{stop.ticket && <div className="info-chip">票务 · {stop.ticket}</div>}{stop.veteran && <div className="veteran-chip">优待证 · {stop.veteran}</div>}<div className="quick-actions">{stop.place && <a href={amap(stop.place)} target="_blank" rel="noreferrer">高德导航</a>}{stop.place && <a href={apple(stop.place)} target="_blank" rel="noreferrer">Apple地图</a>}</div></div>
                 </article>)}
               </div>
               <label className="notes-box"><span>当天备注</span><textarea value={notes[day.id] || ""} onChange={e => setNotes(v => ({ ...v, [day.id]: e.target.value }))} placeholder="记录改线、费用、停车位置、房号……" /></label>
