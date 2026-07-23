@@ -313,7 +313,7 @@ export default function Home() {
       const cached = JSON.parse(localStorage.getItem("xinjiang-weather-v1") || "{}");
       if (cached.data) setWeather(cached.data);
     } catch { /* keep clean defaults */ }
-    if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js").catch(() => undefined);
+    if ("serviceWorker" in navigator) navigator.serviceWorker.register(new URL("sw.js", window.location.href).toString()).catch(() => undefined);
   }, []);
 
   useEffect(() => {

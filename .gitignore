@@ -39,6 +39,7 @@ dev.err.log
 # typescript
 next-env.d.ts
 /dist/
+/static-dist/
 /.wrangler/
 /outputs/
 /work/
